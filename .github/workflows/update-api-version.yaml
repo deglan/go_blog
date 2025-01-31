@@ -1,4 +1,5 @@
 name: Update Version and Release
+
 on:
   push:
     branches:
@@ -17,16 +18,16 @@ jobs:
         id: get_version
         run: |
           VERSION=$(grep -oP '\[\K[0-9]+\.[0-9]+\.[0-9]+' CHANGELOG.md | head -1)
-          echo "::set-output name=VERSION::$VERSION"
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Update version in cmd/api/main.go
         run: |
-          sed -i "s/var version = \".*\"/var version = \"${{ steps.get_version.outputs.VERSION }}\"/" cmd/api/main.go
+          sed -i.bak "s/var version = \".*\"/var version = \"${{ env.VERSION }}\"/" cmd/api/main.go && rm -f cmd/api/main.go.bak
 
       - name: Commit and push if changed
         run: |
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
           git add cmd/api/main.go
-          git commit -m "Update version to ${{ steps.get_version.outputs.VERSION }}" || echo "No changes to commit"
-          git push
+          git diff --quiet && git diff --staged --quiet || git commit -m "Update version to ${{ env.VERSION }}"
+          git push origin main
