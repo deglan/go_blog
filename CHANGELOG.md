@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/deglan/go_blog/compare/v1.0.0...v1.1.0) (2025-02-01)
+
+
+### Features
+
+* add comments api ([79c177f](https://github.com/deglan/go_blog/commit/79c177fe706f2659201672d3adab6f23566706a7))
+
 ## 1.0.0 (2025-01-31)
 
 
