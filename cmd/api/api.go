@@ -98,7 +98,7 @@ func (app *application) mount() http.Handler {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{env.GetString("CORS_ALLOWED_ORIGIN", "http://localhost:*")},
+		AllowedOrigins:   []string{env.GetString("CORS_ALLOWED_ORIGIN", "*")},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link"},
@@ -127,6 +127,22 @@ func (app *application) mount() http.Handler {
 				r.Patch("/", app.checkPostOwnership("moderator", app.updatePostHandler))
 				r.Delete("/", app.checkPostOwnership("admin", app.deletePostHandler))
 
+			})
+		})
+
+		r.Route("/posts/{postId}/comments", func(r chi.Router) {
+			r.Use(app.AuthTokenMiddleware())
+			r.Get("/", app.getCommentsHandler)
+			r.Post("/", app.createCommentHandler)
+		})
+
+		r.Route("/comments", func(r chi.Router) {
+			r.Use(app.AuthTokenMiddleware())
+
+			r.Route("/{commentId}", func(r chi.Router) {
+				r.Use(app.commentContextMiddleware)
+				r.Patch("/", app.updateCommentHandler)
+				r.Delete("/", app.deleteCommentHandler)
 			})
 		})
 
@@ -194,7 +210,7 @@ func (app *application) run(mux http.Handler) error {
 		close(shutdown)
 	}()
 
-	app.logger.Infow("server has started", "addr", app.config.addr, "env", app.config.env)
+	app.logger.Infow("server has started", "addr", app.config.addr, "env", app.config.env, "url", app.config.apiUrl)
 
 	<-shutdown
 

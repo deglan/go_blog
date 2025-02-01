@@ -82,3 +82,41 @@ func (s *CommentsStore) Create(ctx context.Context, comment *Comment) error {
 	}
 	return nil
 }
+
+func (s *CommentsStore) Update(ctx context.Context, comment *Comment) error {
+	query := `
+		UPDATE comments
+		SET content = $1
+		WHERE id = $2 AND user_id = $3
+		RETURNING updated_at
+	`
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
+	defer cancel()
+
+	var updatedAt time.Time
+	err := s.db.QueryRowContext(
+		ctx,
+		query,
+		comment.Content,
+		comment.Id,
+		comment.UserId,
+	).Scan(&updatedAt)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *CommentsStore) Delete(ctx context.Context, commentId, userId int64) error {
+	query := `
+		DELETE FROM comments
+		WHERE id = $1 AND user_id = $2
+	`
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
+	defer cancel()
+
+	_, err := s.db.ExecContext(ctx, query, commentId, userId)
+	return err
+}

@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -175,4 +176,33 @@ func (app *application) getUserWithRedis(ctx context.Context, userId int64) (*st
 	}
 
 	return user, nil
+}
+
+func (app *application) commentContextMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		commentIdStr := chi.URLParam(r, "commentId")
+
+		commentId, err := strconv.ParseInt(commentIdStr, 10, 64)
+		if err != nil {
+			app.logger.Error("Invalid comment ID")
+			app.badRequestErrorResponse(w, r, errors.New("invalid comment ID"))
+			return
+		}
+
+		ctx := r.Context()
+		comment, err := app.store.Comments.GetByPostId(ctx, commentId)
+		if err != nil {
+			if errors.Is(err, store.ErrorNotFound) {
+				app.logger.Warnf("Comment not found for ID: %d", commentId)
+				app.notFoundErrorResponse(w, r, err)
+			} else {
+				app.logger.Errorf("Error fetching comment: %v", err)
+				app.internalServerError(w, r, err)
+			}
+			return
+		}
+
+		ctx = context.WithValue(ctx, commentCtxKey, &comment)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
 }

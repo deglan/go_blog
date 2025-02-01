@@ -8,6 +8,7 @@ import (
 	"social/internal/store"
 	"social/internal/store/cache"
 	"testing"
+	"time"
 
 	"go.uber.org/zap"
 )
@@ -16,27 +17,32 @@ func newTestApplication(t *testing.T, cfg config) *application {
 	t.Helper()
 
 	logger := zap.NewNop().Sugar()
-	// Uncomment to enable logs
-	// logger := zap.Must(zap.NewProduction()).Sugar()
 	mockStore := store.NewMockStore()
 	mockCacheStore := cache.NewMockStore()
-
+	// mockMailer := mailer.NewMockMailer()
 	testAuth := &auth.TestAuthenticator{}
+
+	if cfg.rateLimiter.RequestsPerTimeFrame == 0 {
+		cfg.rateLimiter.RequestsPerTimeFrame = 20
+	}
+	if cfg.rateLimiter.TimeFrame == 0 {
+		cfg.rateLimiter.TimeFrame = 5 * time.Second
+	}
 
 	rateLimiter := ratelimiter.NewFixedWindowLimiter(
 		cfg.rateLimiter.RequestsPerTimeFrame,
 		cfg.rateLimiter.TimeFrame,
 	)
 
-	// Debug log dla sprawdzenia, czy nie jest nil
 	t.Logf("Test rateLimiter initialized: %+v", rateLimiter)
 
 	return &application{
-		logger:        logger,
-		store:         mockStore,
-		cacheStore:    mockCacheStore,
+		config:     cfg,
+		logger:     logger,
+		store:      mockStore,
+		cacheStore: mockCacheStore,
+		// mailer:        mockMailer,
 		authenticator: testAuth,
-		config:        cfg,
 		rateLimiter:   rateLimiter,
 	}
 }
