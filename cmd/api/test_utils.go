@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"social/internal/auth"
+	mailer "social/internal/mailer"
 	"social/internal/ratelimiter"
 	"social/internal/store"
 	"social/internal/store/cache"
@@ -19,7 +20,7 @@ func newTestApplication(t *testing.T, cfg config) *application {
 	logger := zap.NewNop().Sugar()
 	mockStore := store.NewMockStore()
 	mockCacheStore := cache.NewMockStore()
-	// mockMailer := mailer.NewMockMailer()
+	mockMailer := new(mailer.MockMailer)
 	testAuth := &auth.TestAuthenticator{}
 
 	if cfg.rateLimiter.RequestsPerTimeFrame == 0 {
@@ -34,14 +35,12 @@ func newTestApplication(t *testing.T, cfg config) *application {
 		cfg.rateLimiter.TimeFrame,
 	)
 
-	t.Logf("Test rateLimiter initialized: %+v", rateLimiter)
-
 	return &application{
-		config:     cfg,
-		logger:     logger,
-		store:      mockStore,
-		cacheStore: mockCacheStore,
-		// mailer:        mockMailer,
+		config:        cfg,
+		logger:        logger,
+		store:         mockStore,
+		cacheStore:    mockCacheStore,
+		mailer:        mockMailer,
 		authenticator: testAuth,
 		rateLimiter:   rateLimiter,
 	}

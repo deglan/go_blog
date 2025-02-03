@@ -47,6 +47,10 @@ func (p *Password) VerifyPassword(password string) bool {
 	return err == nil
 }
 
+func (p *Password) Hash() []byte {
+	return p.hash
+}
+
 type UserStore struct {
 	db *sql.DB
 }

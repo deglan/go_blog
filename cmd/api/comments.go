@@ -119,6 +119,11 @@ func (app *application) getCommentsHandler(w http.ResponseWriter, r *http.Reques
 //	@Router			/comments/{commentId} [patch]
 func (app *application) updateCommentHandler(w http.ResponseWriter, r *http.Request) {
 	comment := getCommentFromContext(r)
+	if comment == nil {
+		app.logger.Error("No comment found in context")
+		app.notFoundErrorResponse(w, r, errors.New("no comment found in context"))
+		return
+	}
 
 	var payload struct {
 		Content *string `json:"content" validate:"required,max=1000"`

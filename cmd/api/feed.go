@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"social/internal/store"
 )
@@ -26,9 +27,11 @@ import (
 //	@Router			/users/feed [get]
 func (app *application) getUserFeedHandler(w http.ResponseWriter, r *http.Request) {
 	fq := store.PaginatedFeedQuery{
-		Limit:  10,
+		Limit:  20,
 		Offset: 0,
 		Sort:   "desc",
+		Tags:   []string{},
+		Search: "",
 	}
 
 	fq, err := fq.Parse(r)
@@ -38,12 +41,14 @@ func (app *application) getUserFeedHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	if err := Validate.Struct(fq); err != nil {
+		fmt.Println("Validation failed:", err)
 		app.badRequestErrorResponse(w, r, err)
 		return
 	}
 
 	ctx := r.Context()
-	feed, err := app.store.Posts.GetUserFeed(ctx, int64(1), fq)
+	user := getUserFromContext(r)
+	feed, err := app.store.Posts.GetUserFeed(ctx, user.ID, fq)
 	if err != nil {
 		app.internalServerError(w, r, err)
 		return

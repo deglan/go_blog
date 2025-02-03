@@ -143,6 +143,30 @@ func (app *application) checkPostOwnership(requiredRole string, next http.Handle
 	})
 }
 
+func (app *application) checkCommentOwnership(requiredRole string, next http.HandlerFunc) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user := getUserFromContext(r)
+		comment := getCommentFromContext(r)
+
+		if comment.UserId == user.ID {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		allowed, err := app.checkRolePrecedence(r.Context(), user, requiredRole)
+		if err != nil {
+			app.internalServerError(w, r, err)
+			return
+		}
+
+		if !allowed {
+			app.forbiddenErrorResponse(w, r, errors.New("user has no privileges to perform this action"))
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 func (app *application) checkRolePrecedence(ctx context.Context, user *store.User, roleName string) (bool, error) {
 	role, err := app.store.Roles.GetByName(ctx, roleName)
 
@@ -190,7 +214,7 @@ func (app *application) commentContextMiddleware(next http.Handler) http.Handler
 		}
 
 		ctx := r.Context()
-		comment, err := app.store.Comments.GetByPostId(ctx, commentId)
+		comment, err := app.store.Comments.GetById(ctx, commentId)
 		if err != nil {
 			if errors.Is(err, store.ErrorNotFound) {
 				app.logger.Warnf("Comment not found for ID: %d", commentId)
@@ -202,7 +226,7 @@ func (app *application) commentContextMiddleware(next http.Handler) http.Handler
 			return
 		}
 
-		ctx = context.WithValue(ctx, commentCtxKey, &comment)
+		ctx = context.WithValue(ctx, commentCtxKey, comment)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

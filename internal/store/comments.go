@@ -19,6 +19,32 @@ type CommentsStore struct {
 	db *sql.DB
 }
 
+func (s *CommentsStore) GetById(ctx context.Context, id int64) (*Comment, error) {
+	query := `
+		SELECT c.id, c.post_id, c.user_id, c.content, c.created_at, users.username
+		FROM comments c
+		JOIN users ON c.user_id = users.id
+		WHERE c.id = $1
+	`
+
+	var c Comment
+	c.User = User{}
+	err := s.db.QueryRowContext(ctx, query, id).Scan(
+		&c.Id,
+		&c.PostId,
+		&c.UserId,
+		&c.Content,
+		&c.CreatedAt,
+		&c.User.Username,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &c, nil
+}
+
 func (s *CommentsStore) GetByPostId(ctx context.Context, postId int64) ([]Comment, error) {
 	query := `
 		SELECT c.id, c.post_id, c.user_id, c.content, c.created_at, users.username

@@ -141,8 +141,8 @@ func (app *application) mount() http.Handler {
 
 			r.Route("/{commentId}", func(r chi.Router) {
 				r.Use(app.commentContextMiddleware)
-				r.Patch("/", app.updateCommentHandler)
-				r.Delete("/", app.deleteCommentHandler)
+				r.Patch("/", app.checkCommentOwnership("moderator", app.updateCommentHandler))
+				r.Delete("/", app.checkCommentOwnership("admin", app.deleteCommentHandler))
 			})
 		})
 
