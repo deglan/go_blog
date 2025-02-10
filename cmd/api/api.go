@@ -188,7 +188,7 @@ func (app *application) run(mux http.Handler) error {
 
 	go func() {
 		if err := srv.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
-			app.logger.Fatalw("server error", "error", err)
+			app.logger.Fatalw("server error srv.ListenAndServe()", "error", err)
 		}
 	}()
 
