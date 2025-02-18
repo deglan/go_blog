@@ -446,6 +446,11 @@ const docTemplate = `{
         },
         "/posts/{postId}/comments": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "get comments for a post",
                 "consumes": [
                     "application/json"

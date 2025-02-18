@@ -81,6 +81,7 @@ func (app *application) createCommentHandler(w http.ResponseWriter, r *http.Requ
 //	@Failure		404		{object}	error
 //	@Failure		500		{object}	error
 //
+//	@Security		ApiKeyAuth
 //	@Router			/posts/{postId}/comments [get]
 func (app *application) getCommentsHandler(w http.ResponseWriter, r *http.Request) {
 	postId, err := strconv.ParseInt(chi.URLParam(r, "postId"), 10, 64)
