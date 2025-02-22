@@ -1,0 +1,9 @@
+type Query {
+  trendingTags(limit: Int!): [Tag!]!
+}
+
+type Tag {
+  name: String!
+  count: Int!    
+  lastUsed: String 
+}

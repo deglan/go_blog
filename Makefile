@@ -14,6 +14,12 @@ migrate-up:
 	@echo "Applying all up migrations..."
 	@migrate -path=$(MIGRATIONS_PATH) -database=$(DATABASE_URL) up
 
+.PHONY: mongo-migrate
+mongo-migrate:
+	@echo "Running all MongoDB migrations..."
+	@MONGODB_URI=$(MONGODB_URI) go run cmd/migrate/mongodb/migrate.go
+	@echo "✅ All MongoDB migrations completed!"
+
 .PHONY: migrate-down
 migrate-down:
 	@echo "Rolling back migrations..."

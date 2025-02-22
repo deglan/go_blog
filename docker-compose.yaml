@@ -32,9 +32,38 @@ services:
       - redis
     restart:
       unless-stopped
+  mongodb:
+    image: mongo:6.0
+    container_name: mongo
+    restart: unless-stopped
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=adminpassword
+    volumes:
+      - mongo-data:/data/db
+    ports:
+      - "27017:27017"
+    networks:
+      - backend
+
+  mongo-express:
+    image: mongo-express
+    container_name: mongo-express
+    restart: unless-stopped
+    depends_on:
+      - mongodb
+    environment:
+      - ME_CONFIG_MONGODB_ADMINUSERNAME=admin
+      - ME_CONFIG_MONGODB_ADMINPASSWORD=adminpassword
+      - ME_CONFIG_MONGODB_URL=mongodb://admin:adminpassword@mongo:27017/
+    ports:
+      - "8082:8081"
+    networks:
+      - backend
   
 volumes:
   db-data:
+  mongo-data:
 
 networks:
   backend:

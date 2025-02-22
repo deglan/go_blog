@@ -8,15 +8,21 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"social/graph"
 	"social/internal/auth"
 	"social/internal/env"
 	mailer "social/internal/mailer"
 	"social/internal/ratelimiter"
 	"social/internal/store"
 	"social/internal/store/cache"
+	"social/internal/store/mongodb"
 	"syscall"
 	"time"
 
+	"github.com/99designs/gqlgen/graphql/handler"
+	"github.com/99designs/gqlgen/graphql/handler/extension"
+	"github.com/99designs/gqlgen/graphql/handler/transport"
+	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/go-chi/cors"
 	"go.uber.org/zap"
 
@@ -30,6 +36,7 @@ import (
 type application struct {
 	config        config
 	store         store.Storage
+	mongo         mongodb.MongoStorage
 	cacheStore    cache.Storage
 	logger        *zap.SugaredLogger
 	mailer        mailer.Client
@@ -40,6 +47,7 @@ type application struct {
 type config struct {
 	addr        string
 	db          dbConfig
+	mongo       mongoConfig
 	env         string
 	apiUrl      string
 	mail        mailConfig
@@ -88,6 +96,26 @@ type dbConfig struct {
 	maxOpenConns int
 	maxIdleConns int
 	maxIdleTime  string
+}
+
+type mongoConfig struct {
+	addr string
+}
+
+func (app *application) graphqlHandler() http.Handler {
+	resolver := &graph.Resolver{
+		MongoStore: app.mongo,
+	}
+
+	srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: resolver}))
+
+	srv.AddTransport(transport.Options{})
+	srv.AddTransport(transport.GET{})
+	srv.AddTransport(transport.POST{})
+
+	srv.Use(extension.Introspection{})
+
+	return srv
 }
 
 func (app *application) mount() http.Handler {
@@ -167,6 +195,9 @@ func (app *application) mount() http.Handler {
 			r.Post("/token", app.createTokenHandler)
 		})
 	})
+
+	r.Handle("/graphql", app.graphqlHandler())
+	r.Handle("/playground", playground.Handler("GraphQL Playground", "/graphql"))
 
 	return r
 }
