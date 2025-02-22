@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"expvar"
 	"log"
 	"runtime"
@@ -10,11 +11,14 @@ import (
 	"social/internal/ratelimiter"
 	"social/internal/store"
 	"social/internal/store/cache"
+	"social/internal/store/mongodb"
 	"time"
 
 	mailer "social/internal/mailer"
 
 	"github.com/go-redis/redis/v8"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
 )
 
@@ -47,6 +51,9 @@ func main() {
 			maxOpenConns: env.GetInt("DB_MAX_OPEN_CONNS", 30),
 			maxIdleConns: env.GetInt("DB_MAX_IDLE_CONNS", 30),
 			maxIdleTime:  env.GetString("DB_MAX_IDLE_TIME", "15m"),
+		},
+		mongo: mongoConfig{
+			addr: env.GetString("MONGODB_URI", "mongodb://localhost:27017"),
 		},
 		redisCfg: redisConfig{
 			addr:    env.GetString("REDIS_ADDR", "localhost:6379"),
@@ -83,8 +90,8 @@ func main() {
 	//Logger
 	logger := zap.Must(zap.NewProduction(zap.AddStacktrace(zap.FatalLevel + 1))).Sugar()
 	defer logger.Sync()
-	// Database
 
+	// Database
 	db, err := db.New(
 		cfg.db.addr,
 		cfg.db.maxOpenConns,
@@ -96,6 +103,17 @@ func main() {
 	}
 	defer db.Close()
 	logger.Info("Database connection pull established")
+
+	client, err := mongo.Connect(context.Background(), options.Client().ApplyURI(cfg.mongo.addr))
+	if err != nil {
+		logger.Fatal("MongoDB connection error", zap.Error(err))
+	}
+
+	if err = client.Ping(context.Background(), nil); err != nil {
+		logger.Fatal("MongoDB ping failed", zap.Error(err))
+	}
+	defer client.Disconnect(context.Background())
+	logger.Info("MongoDB connection pull established")
 
 	var rdb *redis.Client
 	if cfg.redisCfg.enabled {
@@ -110,6 +128,7 @@ func main() {
 		cfg.rateLimiter.TimeFrame,
 	)
 
+	mongo := mongodb.NewMongoStorage(client.Database("analytics"))
 	store := store.NewStorage(db)
 	cacheStorage := cache.NewRedisStorage(rdb)
 
@@ -123,6 +142,7 @@ func main() {
 	app := &application{
 		config:        cfg,
 		store:         store,
+		mongo:         mongo,
 		cacheStore:    cacheStorage,
 		logger:        logger,
 		mailer:        mailer,

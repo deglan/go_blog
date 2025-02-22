@@ -52,6 +52,7 @@ func (app *application) createPostHandler(w http.ResponseWriter, r *http.Request
 		Content: payload.Content,
 		Tags:    payload.Tags,
 		UserId:  user.ID,
+		User:    *user,
 	}
 
 	ctx := r.Context()
@@ -59,6 +60,8 @@ func (app *application) createPostHandler(w http.ResponseWriter, r *http.Request
 		app.internalServerError(w, r, err)
 		return
 	}
+
+	app.mongo.Tags.UpdateTagsUsage(ctx, post.Tags)
 
 	if err := app.jsonResponse(w, http.StatusCreated, post); err != nil {
 		app.internalServerError(w, r, err)
