@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/deglan/go_blog/compare/v1.1.0...v1.2.0) (2025-02-26)
+
+
+### Features
+
+* add mongo and graphql ([2d78b57](https://github.com/deglan/go_blog/commit/2d78b5789c13a206daec36c5db4abb87e3a88f66))
+
 ## [1.1.0](https://github.com/deglan/go_blog/compare/v1.0.0...v1.1.0) (2025-02-01)
 
 
